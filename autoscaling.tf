@@ -31,12 +31,12 @@ resource "aws_launch_configuration" "example" {
   instance_type          = "t2.micro"
   security_groups        = ["${aws_security_group.instance.id}"]
   key_name               = "${var.key_name}"
-##  user_data = <<-EOF
-##              #!/bin/bash
-##              sudo yum install -y nginx
-##              sudo service nginx start
-##              echo "Hello, World" > /usr/share/nginx/index.html
-##              EOF
+  user_data = << EOF
+              #!/bin/bash
+              sudo yum install -y nginx
+              sudo service nginx start
+              echo "Hello, World" > /usr/share/nginx/html/index.html
+              EOF
   lifecycle {
     create_before_destroy = true
   }
