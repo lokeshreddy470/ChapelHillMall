@@ -10,13 +10,13 @@ resource "aws_security_group" "instance" {
     from_port = 80
     to_port = 80
     protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    security_groups = ["${aws_security_group.elb.id}"]
   }
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["72.208.16.222/32"]
   }
   egress {
     from_port = 0
@@ -25,13 +25,14 @@ resource "aws_security_group" "instance" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
 ## Creating Launch Configuration
 resource "aws_launch_configuration" "example" {
   image_id               = "${var.amis}"
   instance_type          = "t2.micro"
   security_groups        = ["${aws_security_group.instance.id}"]
   key_name               = "${var.key_name}"
-  user_data = << EOF
+  user_data = <<EOF
               #!/bin/bash
               sudo yum install -y nginx
               sudo service nginx start
@@ -41,6 +42,7 @@ resource "aws_launch_configuration" "example" {
     create_before_destroy = true
   }
 }
+
 ## Creating AutoScaling Group
 resource "aws_autoscaling_group" "example" {
   launch_configuration = "${aws_launch_configuration.example.id}"
@@ -56,9 +58,11 @@ resource "aws_autoscaling_group" "example" {
     propagate_at_launch = true
   }
 }
+
 ## Security Group for ELB
 resource "aws_security_group" "elb" {
-  name = "terraform-example-elb"
+  name = "terraform-elb"
+  vpc_id = "${aws_vpc.default.id}"
   egress {
     from_port = 0
     to_port = 0
@@ -72,11 +76,13 @@ resource "aws_security_group" "elb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
 ### Creating ELB
 resource "aws_elb" "example" {
-  name = "terraform-asg-example"
+  name = "terraform-asg"
   security_groups = ["${aws_security_group.elb.id}"]
-  availability_zones = ["${data.aws_availability_zones.all.names}"]
+  subnets         = ["${aws_subnet.us-east-1a-public.id}"]
+#  availability_zones = ["${data.aws_availability_zones.all.names}"]
   health_check {
     healthy_threshold = 2
     unhealthy_threshold = 2
